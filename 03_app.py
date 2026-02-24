@@ -5,7 +5,7 @@ import joblib
 # config
 st.set_page_config(page_title="CleanLabels", page_icon="🍏", layout="wide")
 st.title("CleanLabels")
-st.markdown("Discover healthier food alternatives and predict nutritional scores using Machine Learning.")
+st.markdown("Discover healthier food alternatives and predict nutritional scores using ML.")
 
 @st.cache_data
 def load_data():
@@ -32,7 +32,14 @@ tab1, tab2 = st.tabs(["Find Healthier Alternatives (KNN)", "Predict Health Score
 
 with tab1:
     st.header("Search & Find Healthier Alternatives to Your Food")
-    st.write("Find your current product to see healthier, AI-recommended alternatives.")
+    st.write("Find your current product to see healthier, AI-recommended alternatives with similar ingredients.")
+
+    def get_nutri_grade(score):
+        if score <= -1: return "A", "#038141", "Excellent nutritional quality"
+        elif score <= 2: return "B", "#85BB2F", "Good nutritional quality"
+        elif score <= 10: return "C", "#FECB02", "Average nutritional quality"
+        elif score <= 18: return "D", "#EE8100", "Poor nutritional quality"
+        else: return "E", "#E63E11", "Lowest nutritional quality"
 
     col1, col2 = st.columns(2)
     
@@ -48,7 +55,7 @@ with tab1:
             results = results[results['product_name'].str.contains(search_product, case=False, na=False)]
         if search_brand:
             results = results[results['brands'].str.contains(search_brand, case=False, na=False)]
-        
+            
         results = results.head(50)
         
         if not results.empty:
@@ -58,36 +65,69 @@ with tab1:
             selected_row = results[results['display_name'] == selected_display_name].iloc[0]
             target_idx = selected_row.name 
             
-            st.subheader(f"Current Stats: {selected_row['display_name']}")
-            st.write(f"**Ingredients:** {selected_row['ingredients_text'].title()}") # Capitalized for cleaner UI
-            st.write(f"**Nutri-Score:** {selected_row['health_score']} *(Lower is better)*")
+            current_score = selected_row['health_score']
+            current_grade, current_color, current_meaning = get_nutri_grade(current_score)
             
-            if st.button("Find Healthier Alternatives"):
-                target_vector = unified_matrix[target_idx].reshape(1, -1)
-                distances, indices = knn.kneighbors(target_vector)
+            st.divider()
+            st.subheader(f"Current Product: {selected_row['display_name']}")
+            st.markdown(f"**Ingredients:** {selected_row['ingredients_text'].title()}")
+            st.markdown(f"### Grade: <span style='color:{current_color}; font-weight:bold;'>{current_grade}</span> *(Score: {current_score:.1f})*", unsafe_allow_html=True)
+            st.caption(f"What this means: **{current_meaning}**")
+            
+            grade_hierarchy = ["A", "B", "C", "D", "E"]
+            current_grade_idx = grade_hierarchy.index(current_grade)
+            
+            if current_grade_idx == 0:
+                st.success("Your product is already grade A!")
+            else:
+                better_grades = grade_hierarchy[:current_grade_idx]
+                target_grade = st.selectbox("Minimum Target Grade for Alternatives:", better_grades, index=len(better_grades)-1)
+                target_grade_idx = grade_hierarchy.index(target_grade)
                 
-                neighbor_indices = indices[0][1:] 
-                neighbors_df = df.iloc[neighbor_indices].copy()
-                
-                better_options = neighbors_df[neighbors_df['health_score'] < selected_row['health_score']].head(4)
-                
-                if better_options.empty:
-                    st.warning("This product is already quite healthy compared to its most similar neighbors!")
-                else:
-                    st.subheader("Side-by-Side Brand Comparison")
-                    st.write("Here is your original product compared directly to the healthier recommendations:")
-
-                    original_df = pd.DataFrame([selected_row])
-                    original_df['display_name'] = "🛑 " + original_df['display_name'] + " [YOURS]"
+                if st.button(f"Find Grade {target_grade} or Better Swaps"):
+                    target_vector = unified_matrix[target_idx].reshape(1, -1)
+                    distances, indices = knn.kneighbors(target_vector, n_neighbors=50) 
                     
-                    better_options['display_name'] = better_options['product_name'] + " (" + better_options['brands'].fillna('Unknown Brand') + ")"
-                    better_options['display_name'] = "✅ " + better_options['display_name']
+                    neighbor_indices = indices[0][1:] 
+                    neighbors_df = df.iloc[neighbor_indices].copy()
+                    
+                    neighbors_df['Grade_Tuple'] = neighbors_df['health_score'].apply(get_nutri_grade)
+                    neighbors_df['Grade'] = neighbors_df['Grade_Tuple'].apply(lambda x: x[0])
+                    neighbors_df['Color'] = neighbors_df['Grade_Tuple'].apply(lambda x: x[1])
+                    
+                    def meets_target(grade):
+                        return grade_hierarchy.index(grade) <= target_grade_idx
+                    
+                    valid_swaps = neighbors_df[neighbors_df['Grade'].apply(meets_target)].head(3)
+                    
+                    if valid_swaps.empty:
+                        st.warning(f"We couldn't find any Grade {target_grade} alternatives with similar ingredients. Try aiming for a slightly lower grade!")
+                    else:
+                        st.subheader(f"Top {len(valid_swaps)} Healthier Alternatives")
 
-                    comparison_df = pd.concat([original_df, better_options])
-                    cols_to_show = ['display_name', 'health_score'] + MACRO_FEATURES
-                    final_comparison = comparison_df[cols_to_show].set_index('display_name').T
+                        cols = st.columns(len(valid_swaps))
+                        for col, (_, swap) in zip(cols, valid_swaps.iterrows()):
+                            with col:
+                                st.container(border=True)
+                                st.markdown(f"**{swap['product_name']}**")
+                                st.caption(f"{swap['brands']}")
+                                st.markdown(f"### <span style='color:{swap['Color']};'>{swap['Grade']}</span>", unsafe_allow_html=True)
+                                st.write(f"Score: {swap['health_score']:.1f}")
+                        
+                        st.write("")
+                        with st.expander("📊 View Detailed Nutritional Comparison"):
+                            original_df = pd.DataFrame([selected_row])
+                            original_df['display_name'] = "🛑 " + original_df['display_name'] + " [YOURS]"
+                            
+                            alt_df = valid_swaps.copy()
+                            alt_df['display_name'] = alt_df['product_name'] + " (" + alt_df['brands'].fillna('Unknown Brand') + ")"
+                            alt_df['display_name'] = "✅ " + alt_df['display_name']
 
-                    st.dataframe(final_comparison, use_container_width=True)
+                            comparison_df = pd.concat([original_df, alt_df])
+                            cols_to_show = ['display_name', 'health_score'] + MACRO_FEATURES
+                            final_comparison = comparison_df[cols_to_show].set_index('display_name').T
+                            
+                            st.dataframe(final_comparison, use_container_width=True)
         else:
             st.info("No matching products found. Try adjusting your search terms.")
 
