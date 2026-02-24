@@ -73,6 +73,9 @@ with tab1:
             st.markdown(f"**Ingredients:** {selected_row['ingredients_text'].title()}")
             st.markdown(f"### Grade: <span style='color:{current_color}; font-weight:bold;'>{current_grade}</span> *(Score: {current_score:.1f})*", unsafe_allow_html=True)
             st.caption(f"What this means: **{current_meaning}**")
+
+            if 'url' in selected_row and pd.notna(selected_row['url']):
+                st.link_button("🔗 View on Open Food Facts", selected_row['url'])
             
             grade_hierarchy = ["A", "B", "C", "D", "E"]
             current_grade_idx = grade_hierarchy.index(current_grade)
@@ -113,15 +116,18 @@ with tab1:
                                 st.caption(f"{swap['brands']}")
                                 st.markdown(f"### <span style='color:{swap['Color']};'>{swap['Grade']}</span>", unsafe_allow_html=True)
                                 st.write(f"Score: {swap['health_score']:.1f}")
+
+                                if 'url' in swap and pd.notna(swap['url']):
+                                    st.link_button("🔗 View on Open Food Facts", swap['url'])
                         
                         st.write("")
-                        with st.expander("📊 View Detailed Nutritional Comparison"):
+                        with st.expander("View Detailed Nutritional Comparison"):
                             original_df = pd.DataFrame([selected_row])
-                            original_df['display_name'] = "🛑 " + original_df['display_name'] + " [YOURS]"
+                            original_df['display_name'] = original_df['display_name'] + " - Original Product"
                             
                             alt_df = valid_swaps.copy()
                             alt_df['display_name'] = alt_df['product_name'] + " (" + alt_df['brands'].fillna('Unknown Brand') + ")"
-                            alt_df['display_name'] = "✅ " + alt_df['display_name']
+                            alt_df['display_name'] = alt_df['display_name']
 
                             comparison_df = pd.concat([original_df, alt_df])
                             cols_to_show = ['display_name', 'health_score'] + MACRO_FEATURES
