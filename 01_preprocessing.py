@@ -15,7 +15,7 @@ fda_standard_label = [
 
 keep_cols = [
     'code', 'product_name', 'brands', 'countries', 'ingredients_text',
-    'nutrition-score-fr_100g'
+    'nutrition-score-fr_100g', 'url'
 ] + fda_standard_label
 
 df = pd.read_csv('data/raw_data.tsv', sep='\t', usecols=lambda c: c in keep_cols, low_memory=False)
