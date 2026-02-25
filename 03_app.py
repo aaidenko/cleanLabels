@@ -71,7 +71,7 @@ with tab1:
             st.divider()
             st.subheader(f"Current Product: {selected_row['display_name']}")
             st.markdown(f"**Ingredients:** {selected_row['ingredients_text'].title()}")
-            st.markdown(f"### Grade: <span style='color:{current_color}; font-weight:bold;'>{current_grade}</span> *(Score: {current_score:.1f})*", unsafe_allow_html=True)
+            st.markdown(f"### Grade: <span style='color:{current_color}; font-weight:bold;'>{current_grade}</span> *(Score: {(current_score)})*", unsafe_allow_html=True)
             st.caption(f"What this means: **{current_meaning}**")
 
             if 'url' in selected_row and pd.notna(selected_row['url']):
@@ -104,21 +104,21 @@ with tab1:
                     valid_swaps = neighbors_df[neighbors_df['Grade'].apply(meets_target)].head(3)
                     
                     if valid_swaps.empty:
-                        st.warning(f"We couldn't find any Grade {target_grade} alternatives with similar ingredients. Try aiming for a slightly lower grade!")
+                        st.warning(f"We couldn't find any Grade {target_grade} alternatives with similar ingredients in our database. Try aiming for a slightly lower grade!")
                     else:
-                        st.subheader(f"Top {len(valid_swaps)} Healthier Alternatives")
+                        st.subheader(f"Top {len(valid_swaps)} Closest Alternatives")
 
                         cols = st.columns(len(valid_swaps))
                         for col, (_, swap) in zip(cols, valid_swaps.iterrows()):
                             with col:
-                                st.container(border=True)
-                                st.markdown(f"**{swap['product_name']}**")
-                                st.caption(f"{swap['brands']}")
-                                st.markdown(f"### <span style='color:{swap['Color']};'>{swap['Grade']}</span>", unsafe_allow_html=True)
-                                st.write(f"Score: {swap['health_score']:.1f}")
+                                with st.container(border=True):
+                                    st.markdown(f"**{swap['product_name']}**")
+                                    st.caption(f"{swap['brands']}")
+                                    st.markdown(f"### <span style='color:{swap['Color']};'>{swap['Grade']}</span>", unsafe_allow_html=True)
+                                    st.write(f"Score: {swap['health_score']:.1f}")
 
-                                if 'url' in swap and pd.notna(swap['url']):
-                                    st.link_button("🔗 View on Open Food Facts", swap['url'])
+                                    if 'url' in swap and pd.notna(swap['url']):
+                                        st.link_button("🔗 View on Open Food Facts", swap['url'])
                         
                         st.write("")
                         with st.expander("View Detailed Nutritional Comparison"):
@@ -139,7 +139,7 @@ with tab1:
 
 with tab2:
     st.header("Predict Score for a New Product")
-    st.write("Enter the ingredients and macros per 100g to see how an AI model grades a brand new or custom product.")
+    st.write("Enter the ingredients and macros per 100g to see how our model grades a brand new/custom product.")
     
     col1, col2 = st.columns(2)
     
@@ -174,6 +174,22 @@ with tab2:
             'proteins_100g': protein,
             'sodium_100g': sodium
         }])
-        predicted_score = rf_pipeline.predict(input_data)[0]
         
-        st.success(f"AI Predicted Nutri-Score: **{predicted_score:.2f}**")
+        raw_score = rf_pipeline.predict(input_data)[0]
+        predicted_score = int(round(raw_score))
+        
+        if predicted_score <= -1: 
+            grade, color_hex, meaning = "A", "#038141", "Excellent nutritional quality"
+        elif predicted_score <= 2: 
+            grade, color_hex, meaning = "B", "#85BB2F", "Good nutritional quality"
+        elif predicted_score <= 10: 
+            grade, color_hex, meaning = "C", "#FECB02", "Average nutritional quality"
+        elif predicted_score <= 18: 
+            grade, color_hex, meaning = "D", "#EE8100", "Poor nutritional quality"
+        else: 
+            grade, color_hex, meaning = "E", "#E63E11", "Lowest nutritional quality"
+        
+        st.divider()
+        st.markdown(f"### AI Predicted Nutri-Score: **{predicted_score}**")
+        st.markdown(f"### Estimated Grade: <span style='color:{color_hex}; font-weight:bold;'>{grade}</span>", unsafe_allow_html=True)
+        st.caption(f"What this means: **{meaning}**")
