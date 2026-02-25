@@ -16,7 +16,7 @@ It can also predict a Nutri-Score grade for a novel food item that the user ente
 - Healthier Recommendations: Select a minimum target health grade (e.g., "Show me alternatives that are a B or better") and an ML model finds the top 3 closest matches.
 - Custom Recipe Predictor: If you want to know how healthy/unhealthy a new product may be, enter your raw ingredients and macros to predict how the algorithm will grade it.
 
-## Under the Hood (ML Compononent)
+## Under the Hood (ML Component)
 We use a multimodal ML pipeline to train our models for this project:
 1. NLP (TF-IDF Vectorization): We vectorize raw ingredient lists to understand the actual composition of the food, giving unique ingredients proper mathematical weight.
 2. Feature Scaling (MinMaxScaler): We scale standard FDA macronutrients (fat, sugar, sodium, etc.) and unify them with the text vectors.
