@@ -3,8 +3,8 @@ import pandas as pd
 import joblib
 
 # config
-st.set_page_config(page_title="CleanLabels", page_icon="🍏", layout="wide")
-st.title("CleanLabels")
+st.set_page_config(page_title="cleanLabels", page_icon="🍏", layout="wide")
+st.title("cleanLabels")
 st.markdown("Discover healthier food alternatives and predict nutritional scores using ML.")
 
 @st.cache_data
