@@ -1,7 +1,7 @@
 # cleanLabels 🍏
 Built for SunnyHacks Feb 2026
 
-[![Streamlit App]](https://cleanlabels.streamlit.app/)
+[Streamlit App](https://cleanlabels.streamlit.app/)
 
 ## The Problem
 Navigating nutrition labels is confusing, and finding genuinely healthier alternatives that actually share the same ingredients and taste profile is incredibly difficult. 
@@ -27,4 +27,4 @@ We use a multimodal ML pipeline to train our models for this project:
 - Frontend: Streamlit
 - Machine Learning: Scikit-Learn (KNN, Random Forest, TF-IDF)
 - Data Processing: Pandas
-- Dataset: Open Food Facts (Kaggle) - Cleaned and filtered for US-only products.
+- Dataset: [Open Food Facts (Kaggle)](https://www.kaggle.com/datasets/openfoodfacts/world-food-facts/data) - Cleaned and filtered for US-only products.
